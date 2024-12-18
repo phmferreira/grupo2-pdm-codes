@@ -6,6 +6,11 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import java.lang.NumberFormatException
+
+private const val OPERACAO_PENDENTE_CHAVE = "OperacaoPendente"
+private const val OPERANDO1_CHAVE = "Operando1"
+private const val OPERANDO1_STATUS_CHAVE = "Operando1Status"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var resultado : EditText
@@ -13,7 +18,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var displayOperacao : TextView
 
     private var operando1 : Double? = null
-    private var operando2 : Double = 0.0
+//    private var operando2 : Double = 0.0
     private var operacaoPendente : String = "="
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,12 +70,18 @@ class MainActivity : AppCompatActivity() {
         val operacaoListener = View.OnClickListener {
             botao ->
             val operador = (botao as Button).text.toString()
-            val valorDigitado = novoNumero.text.toString()
-            if (valorDigitado.isNotEmpty()){
+//            val valorDigitado = novoNumero.text.toString()
+//            if (valorDigitado.isNotEmpty()){
+//                realizarCalculo(valorDigitado)
+//            }
+            try {
+                val valorDigitado = novoNumero.text.toString().toDouble()
                 realizarCalculo(valorDigitado)
+                operacaoPendente = operador
+                displayOperacao.text = operacaoPendente
+            } catch (e: NumberFormatException){
+                novoNumero.setText("")
             }
-            operacaoPendente = operador
-            displayOperacao.text = operacaoPendente
         }
         btSoma.setOnClickListener(operacaoListener)
         btSubtracao.setOnClickListener(operacaoListener)
@@ -79,26 +90,49 @@ class MainActivity : AppCompatActivity() {
         btresultado.setOnClickListener(operacaoListener)
     }
 
-    private fun realizarCalculo(valor : String){
+    private fun realizarCalculo(valor : Double){
         if(operando1 == null){
-            operando1 = valor.toDouble()
+            operando1 = valor
         } else {
-            operando2 = valor.toDouble()
             // realiza a operacao pendente
             when(operacaoPendente){
-                "=" -> operando1 = operando2
-                "+" -> operando1 = operando1!! + operando2
-                "-" -> operando1 = operando1!! - operando2
-                "x" -> operando1 = operando1!! * operando2
-                "/" -> if(operando2 == 0.0){
+                "=" -> operando1 = valor
+                "+" -> operando1 = operando1!! + valor
+                "-" -> operando1 = operando1!! - valor
+                "x" -> operando1 = operando1!! * valor
+                "/" -> if(valor == 0.0){
                     operando1 = Double.NaN
                 } else {
-                    operando1 = operando1!! / operando2
+                    operando1 = operando1!! / valor
                 }
             }
         }
         resultado.setText(operando1.toString())
         novoNumero.setText("")
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if(operando1 != null){
+            outState.putDouble(OPERANDO1_CHAVE, operando1!!)
+            outState.putBoolean(OPERANDO1_STATUS_CHAVE, true)
+        }
+        outState.putString(
+            OPERACAO_PENDENTE_CHAVE, operacaoPendente)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        if (savedInstanceState.getBoolean(OPERANDO1_STATUS_CHAVE)){
+            operando1 =
+                savedInstanceState
+                    .getDouble(OPERANDO1_CHAVE)
+        }
+
+        operacaoPendente = savedInstanceState
+            .getString(OPERACAO_PENDENTE_CHAVE)
+            .toString()
+        displayOperacao.text = operacaoPendente
     }
 }
 
